@@ -4,8 +4,15 @@ import Browser
 import Html exposing (Html, text, div)
 
 
+-- MAIN
+
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.document
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 -- MODEL
@@ -14,39 +21,45 @@ type alias Row = List Int
 type alias Board = List Row
 type alias Model = Board
 
-init : Model
-init =
-    [ [2,0,0,0]
-    , [0,0,0,0]
-    , [0,0,0,0]
-    , [0,0,0,0]
-    ]
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( [ [2,0,0,0]
+      , [0,0,0,0]
+      , [0,0,0,0]
+      , [0,0,0,0]
+      ]
+    , Cmd.none
+    )
 
 
 -- UPDATE
 
 type Msg = Up | Right | Down | Left
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-    case msg of
-        Up ->
-            model
+    (model, Cmd.none)
 
-        Right ->
-            model
 
-        Down ->
-            model
+-- SUBSCRIPTIONS
 
-        Left ->
-            model
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 -- VIEW
 
-view : Model -> Html Msg
-view model = renderBoard model
+type alias Document msg =
+    { title : String
+    , body : List (Html msg)
+    }
+
+view : Model -> Document Msg
+view model =
+    { title = "2048"
+    , body = [renderBoard model]
+    }
 
 renderBoard : Board -> Html Msg
 renderBoard board =
