@@ -1,0 +1,57 @@
+body {
+  background-color: #eeeeee;
+  font-family: sans-serif;
+}
+
+.Board {
+  width: 90vmin;
+  max-width: 700px;
+  height: 90vmin;
+  max-height: 700px;
+  margin: auto;
+  padding: 10px;
+  background-color: #8f8d8e;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.Row {
+  display: inline-flex;
+  height: 25%;
+  flex-grow: 1;
+}
+
+.Tile {
+  width: 25%;
+  background-color: yellow;
+  color: #444;
+  margin: 10px;
+  border-radius: 5px;
+  text-align: center;
+  display: flex;
+  font-family: 'Autour One', sans-serif;
+}
+
+.Tile > p {
+  margin: auto;
+}
+
+.Tile-0 {
+  background-color: #c1c1bf;
+}
+
+.Tile-2 {
+  font-size: 4em;
+  background-color: #efdfa2;
+}
+
+.Tile-4 {
+  font-size: 4em;
+  background-color: #f6cb97;
+}
+
+.Tile-8 {
+  font-size: 4em;
+  background-color: #fdad8c;
+}

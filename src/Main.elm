@@ -1,7 +1,8 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, text, div)
+import Html exposing (Html, text, div, p)
+import Html.Attributes exposing (class)
 
 
 -- MAIN
@@ -23,10 +24,10 @@ type alias Model = Board
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( [ [2,0,0,0]
+    ( [ [2,0,0,2]
       , [0,0,0,0]
       , [0,0,0,0]
-      , [0,0,0,0]
+      , [0,2,4,8]
       ]
     , Cmd.none
     )
@@ -63,16 +64,20 @@ view model =
 
 renderBoard : Board -> Html Msg
 renderBoard board =
-    div []
+    div [ class "Board" ]
         ( List.map renderRow board )
 
 renderRow : Row -> Html Msg
 renderRow row =
-    div []
+    div [ class "Row" ]
         (List.map renderTile row)
 
 renderTile : Int -> Html Msg
 renderTile n =
-    div []
-        [ text (String.fromInt n) ]
+    div [ class (String.concat ["Tile Tile-", String.fromInt n]) ]
+        [ p []
+            [ if n == 0
+                then text ""
+                else text (String.fromInt n)
+                ] ]
 

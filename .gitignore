@@ -1,5 +1,6 @@
 # Elm artifacts
 elm-stuff/
 .idea/
-index.html
 main.js
+node_modules/
+build/
