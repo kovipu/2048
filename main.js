@@ -4792,13 +4792,13 @@ var author$project$Main$init = function (_n0) {
 		_List_fromArray(
 			[
 				_List_fromArray(
-				[2, 0, 0, 0]),
+				[2, 0, 0, 2]),
 				_List_fromArray(
 				[0, 0, 0, 0]),
 				_List_fromArray(
 				[0, 0, 0, 0]),
 				_List_fromArray(
-				[0, 0, 0, 0])
+				[0, 2, 4, 8])
 			]),
 		elm$core$Platform$Cmd$none);
 };
@@ -4811,6 +4811,9 @@ var author$project$Main$update = F2(
 	function (msg, model) {
 		return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 	});
+var elm$core$String$concat = function (strings) {
+	return A2(elm$core$String$join, '', strings);
+};
 var elm$core$Basics$identity = function (x) {
 	return x;
 };
@@ -4830,16 +4833,41 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	}
 };
 var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$p = _VirtualDom_node('p');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var author$project$Main$renderTile = function (n) {
 	return A2(
 		elm$html$Html$div,
-		_List_Nil,
 		_List_fromArray(
 			[
-				elm$html$Html$text(
-				elm$core$String$fromInt(n))
+				elm$html$Html$Attributes$class(
+				elm$core$String$concat(
+					_List_fromArray(
+						[
+							'Tile Tile-',
+							elm$core$String$fromInt(n)
+						])))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						(!n) ? elm$html$Html$text('') : elm$html$Html$text(
+						elm$core$String$fromInt(n))
+					]))
 			]));
 };
 var elm$core$List$foldrHelper = F4(
@@ -4914,13 +4942,19 @@ var elm$core$List$map = F2(
 var author$project$Main$renderRow = function (row) {
 	return A2(
 		elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$class('Row')
+			]),
 		A2(elm$core$List$map, author$project$Main$renderTile, row));
 };
 var author$project$Main$renderBoard = function (board) {
 	return A2(
 		elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$class('Board')
+			]),
 		A2(elm$core$List$map, author$project$Main$renderRow, board));
 };
 var author$project$Main$view = function (model) {
