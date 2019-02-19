@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "mkdir -p ./build && elm make src/Main.elm --output=build/main.js && cp ./src/index.html ./build/ && cp ./src/style.css ./build/",
-    "watch": "chokidar '**/*.elm' -c 'npm run build'"
+    "watch": "chokidar 'src/*' -c 'npm run build'"
   },
   "devDependencies": {
     "chokidar-cli": "^1.2.1",

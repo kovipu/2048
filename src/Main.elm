@@ -3,6 +3,9 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (class)
+import Html.Events exposing (on, onMouseDown, onMouseUp)
+import Debug exposing (log)
+import Json.Decode exposing (Decoder, map4, at, float, int)
 
 
 -- MAIN
@@ -20,27 +23,91 @@ main =
 
 type alias Row = List Int
 type alias Board = List Row
-type alias Model = Board
+type alias Model =
+    { board : Board
+    , isMouseDown : Bool
+    , originalCoordinates : (Int, Int)
+    }
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( [ [2,0,0,2]
-      , [0,0,0,0]
-      , [0,0,0,0]
-      , [0,2,4,8]
-      ]
+    ( { board = [ [2,0,0,2]
+                , [0,0,0,0]
+                , [0,0,0,0]
+                , [0,2,4,8]
+                ]
+      , isMouseDown = False
+      , originalCoordinates = (0, 0)
+      }
     , Cmd.none
     )
 
 
+
 -- UPDATE
 
-type Msg = Up | Right | Down | Left
+type alias MouseMoveData =
+    { offsetX : Int
+    , offsetY : Int
+    , offsetHeight : Float
+    , offsetWidth : Float
+    }
 
-update : Msg -> Model -> (Model, Cmd Msg)
+type Direction = Up | Right | Down | Left | None
+type Msg = MouseDown MouseMoveData | MouseMove MouseMoveData | MouseUp
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    (model, Cmd.none)
+    case msg of
+        MouseDown data ->
+            ({ board = model.board
+                , isMouseDown = True
+                , originalCoordinates = (data.offsetX, data.offsetY)
+                }, Cmd.none)
 
+        MouseMove data ->
+            let
+                direction = findMoveDirection model.originalCoordinates (data.offsetX, data.offsetY)
+            in
+                if direction == None || not model.isMouseDown
+                then (model, Cmd.none)
+                else ({ board = moveTiles model.board direction
+                      , isMouseDown = False
+                      , originalCoordinates = model.originalCoordinates
+                      }, Cmd.none)
+
+        MouseUp ->
+            ({ board = model.board
+             , isMouseDown = False
+             , originalCoordinates = (0, 0)
+             }, Cmd.none)
+
+findMoveDirection : (Int, Int) -> (Int, Int) -> Direction
+findMoveDirection (originalX, originalY) (newX, newY) =
+    let
+        offsetX = originalX - newX
+        offsetY = originalY - newY
+        threshold = 50
+    in
+        if (abs offsetX) > threshold || (abs offsetY) > threshold
+        then
+            if (abs offsetX) > (abs offsetY)
+            then
+                if offsetX > 0
+                then Left
+                else Right
+            else
+                if offsetY > 0
+                then Up
+                else Down
+        else None
+
+
+moveTiles : Board -> Direction -> Board
+moveTiles board direction =
+    let _ = log "Moving to direction" direction
+    in board
 
 -- SUBSCRIPTIONS
 
@@ -59,13 +126,30 @@ type alias Document msg =
 view : Model -> Document Msg
 view model =
     { title = "2048"
-    , body = [renderBoard model]
+    , body = [renderBoard model.board]
     }
 
 renderBoard : Board -> Html Msg
 renderBoard board =
-    div [ class "Board" ]
-        ( List.map renderRow board )
+    div [ class "BoardContainer" ]
+        [ div [ class "Board"
+              ]
+              ( List.map renderRow board )
+         , div [ class "TouchListener"
+               , on "mousedown" (Json.Decode.map MouseDown decodeMouseData)
+               , on "mousemove" (Json.Decode.map MouseMove decodeMouseData)
+               , onMouseUp MouseUp
+               ]
+               []
+         ]
+
+decodeMouseData : Decoder MouseMoveData
+decodeMouseData =
+    map4 MouseMoveData
+        (at [ "offsetX" ] int)
+        (at [ "offsetY" ] int)
+        (at [ "target", "offsetHeight" ] float)
+        (at [ "target", "offsetWidth" ] float)
 
 renderRow : Row -> Html Msg
 renderRow row =
@@ -74,10 +158,13 @@ renderRow row =
 
 renderTile : Int -> Html Msg
 renderTile n =
-    div [ class (String.concat ["Tile Tile-", String.fromInt n]) ]
-        [ p []
-            [ if n == 0
-                then text ""
-                else text (String.fromInt n)
-                ] ]
+    let
+        num = String.fromInt n
+    in
+        div [ class (String.concat ["Tile Tile-", num]) ]
+            [ p []
+                [ if n == 0
+                    then text ""
+                    else text num
+                    ] ]
 

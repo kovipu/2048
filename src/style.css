@@ -1,6 +1,15 @@
 body {
   background-color: #eeeeee;
   font-family: sans-serif;
+  margin: 0;
+}
+
+.BoardContainer {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .Board {
@@ -13,7 +22,15 @@ body {
   background-color: #8f8d8e;
   border-radius: 10px;
   display: flex;
+  position: absolute;
   flex-direction: column;
+}
+
+.TouchListener {
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+  z-index: 3;
 }
 
 .Row {
@@ -24,7 +41,6 @@ body {
 
 .Tile {
   width: 25%;
-  background-color: yellow;
   color: #444;
   margin: 10px;
   border-radius: 5px;
