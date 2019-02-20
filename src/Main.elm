@@ -62,10 +62,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         MouseDown data ->
-            ({ board = model.board
-                , isMouseDown = True
-                , originalCoordinates = (data.offsetX, data.offsetY)
-                }, Cmd.none)
+            ( { model | isMouseDown = True
+              , originalCoordinates = (data.offsetX, data.offsetY)
+              }
+            , Cmd.none)
 
         MouseMove data ->
             let
@@ -73,19 +73,17 @@ update msg model =
             in
                 if direction == None || not model.isMouseDown
                 then (model, Cmd.none)
-                else ({ board = model.board
+                else ( { model | board = model.board
                           |> normalize direction
                           |> moveTiles
                           |> deNormalize direction
-                      , isMouseDown = False
-                      , originalCoordinates = model.originalCoordinates
-                      }, Cmd.none)
+                       , isMouseDown = False
+                       }
+                     , Cmd.none)
 
         MouseUp ->
-            ({ board = model.board
-             , isMouseDown = False
-             , originalCoordinates = (0, 0)
-             }, Cmd.none)
+            ( { model | isMouseDown = False }
+            , Cmd.none)
 
 findMoveDirection : (Int, Int) -> (Int, Int) -> Direction
 findMoveDirection (originalX, originalY) (newX, newY) =
