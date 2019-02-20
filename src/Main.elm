@@ -3,9 +3,10 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (class)
-import Html.Events exposing (on, onMouseDown, onMouseUp)
+import Html.Events exposing (on, onMouseUp)
 import Debug exposing (log)
 import Json.Decode exposing (Decoder, map4, at, float, int)
+import List.Extra exposing (transpose)
 
 
 -- MAIN
@@ -31,9 +32,9 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { board = [ [2,0,0,2]
-                , [0,0,0,0]
-                , [0,0,0,0]
+    ( { board = [ [2,0,0,0]
+                , [0,0,2,2]
+                , [4,4,0,0]
                 , [0,2,4,8]
                 ]
       , isMouseDown = False
@@ -72,7 +73,9 @@ update msg model =
             in
                 if direction == None || not model.isMouseDown
                 then (model, Cmd.none)
-                else ({ board = moveTiles model.board direction
+                else ({ board = model.board
+                          |> normalize direction
+                          |> moveTiles direction
                       , isMouseDown = False
                       , originalCoordinates = model.originalCoordinates
                       }, Cmd.none)
@@ -90,24 +93,46 @@ findMoveDirection (originalX, originalY) (newX, newY) =
         offsetY = originalY - newY
         threshold = 50
     in
-        if (abs offsetX) > threshold || (abs offsetY) > threshold
+        if (abs offsetX) > threshold
         then
-            if (abs offsetX) > (abs offsetY)
-            then
-                if offsetX > 0
-                then Left
-                else Right
-            else
-                if offsetY > 0
-                then Up
-                else Down
+            if offsetX > 0
+            then Left
+            else Right
+        else if abs offsetY > threshold
+        then
+            if offsetY > 0
+            then Up
+            else Down
         else None
 
-
-moveTiles : Board -> Direction -> Board
-moveTiles board direction =
+moveTiles : Direction -> Board -> Board
+moveTiles direction board =
     let _ = log "Moving to direction" direction
     in board
+
+normalize : Direction -> Board -> Board
+normalize direction board =
+    case direction of
+        Up ->
+            board
+                |> transpose
+                |> List.map List.reverse
+
+        Right ->
+            board
+
+        Down ->
+            board
+                |> List.reverse
+                |> transpose
+
+        Left ->
+            board
+                |> List.map List.reverse
+
+        _ ->
+            board
+
 
 -- SUBSCRIPTIONS
 
@@ -132,8 +157,7 @@ view model =
 renderBoard : Board -> Html Msg
 renderBoard board =
     div [ class "BoardContainer" ]
-        [ div [ class "Board"
-              ]
+        [ div [ class "Board" ]
               ( List.map renderRow board )
          , div [ class "TouchListener"
                , on "mousedown" (Json.Decode.map MouseDown decodeMouseData)
