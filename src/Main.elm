@@ -32,10 +32,10 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { board = [ [2,0,0,0]
-                , [0,0,2,2]
-                , [4,4,0,0]
-                , [0,2,4,8]
+    ( { board = [ [0,0,2,2]
+                , [0,0,0,0]
+                , [0,0,0,0]
+                , [0,0,8,4]
                 ]
       , isMouseDown = False
       , originalCoordinates = (0, 0)
@@ -75,7 +75,8 @@ update msg model =
                 then (model, Cmd.none)
                 else ({ board = model.board
                           |> normalize direction
-                          |> moveTiles direction
+                          |> moveTiles
+                          |> deNormalize direction
                       , isMouseDown = False
                       , originalCoordinates = model.originalCoordinates
                       }, Cmd.none)
@@ -105,21 +106,17 @@ findMoveDirection (originalX, originalY) (newX, newY) =
             else Down
         else None
 
-moveTiles : Direction -> Board -> Board
-moveTiles direction board =
-    let _ = log "Moving to direction" direction
-    in board
-
 normalize : Direction -> Board -> Board
 normalize direction board =
     case direction of
         Up ->
             board
                 |> transpose
-                |> List.map List.reverse
+                |> List.reverse
 
         Right ->
             board
+                |> List.map List.reverse
 
         Down ->
             board
@@ -128,7 +125,61 @@ normalize direction board =
 
         Left ->
             board
+
+        _ ->
+            board
+
+-- assumes the board is normalized so we only need to handle moving left
+moveTiles : Board -> Board
+moveTiles board =
+    List.map moveRow board
+
+
+moveRow : Row -> Row
+moveRow row =
+    row
+        |> List.foldr stepFunction []
+        |> padWithZeros
+        |> List.take 4
+
+
+stepFunction : Int -> List Int -> List Int
+stepFunction n acc =
+    let h = List.head acc
+    in
+        if h == Nothing
+            then [n]
+        else if n == 0
+            then acc
+        else if h == Just n
+            then 2*n :: List.drop 1 acc
+        else
+            n :: acc
+
+-- pad a list with zeroes
+padWithZeros : List Int -> List Int
+padWithZeros row = row ++ [0,0,0,0]
+
+
+deNormalize : Direction -> Board -> Board
+deNormalize direction board =
+    case direction of
+        Up ->
+            board
+                |> List.reverse
+                |> transpose
+
+        Right ->
+            board
                 |> List.map List.reverse
+
+        Down ->
+            board
+                |> transpose
+                |> List.reverse
+
+        Left ->
+            board
 
         _ ->
             board
