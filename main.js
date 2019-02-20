@@ -1529,7 +1529,7 @@ function _Json_runArrayDecoder(decoder, value, toElmValue)
 
 function _Json_isArray(value)
 {
-	return Array.isArray(value) || (typeof FileList === 'function' && value instanceof FileList);
+	return Array.isArray(value) || (typeof FileList !== 'undefined' && value instanceof FileList);
 }
 
 function _Json_toElmArray(array)
@@ -4789,17 +4789,21 @@ var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		_List_fromArray(
-			[
-				_List_fromArray(
-				[2, 0, 0, 2]),
-				_List_fromArray(
-				[0, 0, 0, 0]),
-				_List_fromArray(
-				[0, 0, 0, 0]),
-				_List_fromArray(
-				[0, 2, 4, 8])
-			]),
+		{
+			board: _List_fromArray(
+				[
+					_List_fromArray(
+					[2, 0, 0, 0]),
+					_List_fromArray(
+					[0, 0, 2, 2]),
+					_List_fromArray(
+					[4, 4, 0, 0]),
+					_List_fromArray(
+					[0, 2, 4, 8])
+				]),
+			isMouseDown: false,
+			originalCoordinates: _Utils_Tuple2(0, 0)
+		},
 		elm$core$Platform$Cmd$none);
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
@@ -4807,69 +4811,38 @@ var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$Main$subscriptions = function (model) {
 	return elm$core$Platform$Sub$none;
 };
-var author$project$Main$update = F2(
-	function (msg, model) {
-		return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+var author$project$Main$None = {$: 'None'};
+var author$project$Main$Down = {$: 'Down'};
+var author$project$Main$Left = {$: 'Left'};
+var author$project$Main$Right = {$: 'Right'};
+var author$project$Main$Up = {$: 'Up'};
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var author$project$Main$findMoveDirection = F2(
+	function (_n0, _n1) {
+		var originalX = _n0.a;
+		var originalY = _n0.b;
+		var newX = _n1.a;
+		var newY = _n1.b;
+		var threshold = 50;
+		var offsetY = originalY - newY;
+		var offsetX = originalX - newX;
+		return (_Utils_cmp(
+			elm$core$Basics$abs(offsetX),
+			threshold) > 0) ? ((offsetX > 0) ? author$project$Main$Left : author$project$Main$Right) : ((_Utils_cmp(
+			elm$core$Basics$abs(offsetY),
+			threshold) > 0) ? ((offsetY > 0) ? author$project$Main$Up : author$project$Main$Down) : author$project$Main$None);
 	});
-var elm$core$String$concat = function (strings) {
-	return A2(elm$core$String$join, '', strings);
-};
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
-};
-var elm$html$Html$div = _VirtualDom_node('div');
-var elm$html$Html$p = _VirtualDom_node('p');
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var elm$json$Json$Encode$string = _Json_wrap;
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
+var elm$core$Debug$log = _Debug_log;
+var author$project$Main$moveTiles = F2(
+	function (direction, board) {
+		var _n0 = A2(elm$core$Debug$log, 'Moving to direction', direction);
+		return board;
 	});
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var author$project$Main$renderTile = function (n) {
-	return A2(
-		elm$html$Html$div,
-		_List_fromArray(
-			[
-				elm$html$Html$Attributes$class(
-				elm$core$String$concat(
-					_List_fromArray(
-						[
-							'Tile Tile-',
-							elm$core$String$fromInt(n)
-						])))
-			]),
-		_List_fromArray(
-			[
-				A2(
-				elm$html$Html$p,
-				_List_Nil,
-				_List_fromArray(
-					[
-						(!n) ? elm$html$Html$text('') : elm$html$Html$text(
-						elm$core$String$fromInt(n))
-					]))
-			]));
-};
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -4939,6 +4912,201 @@ var elm$core$List$map = F2(
 			_List_Nil,
 			xs);
 	});
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var elm_community$list_extra$List$Extra$rowsLength = function (listOfLists) {
+	if (!listOfLists.b) {
+		return 0;
+	} else {
+		var x = listOfLists.a;
+		return elm$core$List$length(x);
+	}
+};
+var elm_community$list_extra$List$Extra$transpose = function (listOfLists) {
+	return A3(
+		elm$core$List$foldr,
+		elm$core$List$map2(elm$core$List$cons),
+		A2(
+			elm$core$List$repeat,
+			elm_community$list_extra$List$Extra$rowsLength(listOfLists),
+			_List_Nil),
+		listOfLists);
+};
+var author$project$Main$normalize = F2(
+	function (direction, board) {
+		switch (direction.$) {
+			case 'Up':
+				return A2(
+					elm$core$List$map,
+					elm$core$List$reverse,
+					elm_community$list_extra$List$Extra$transpose(board));
+			case 'Right':
+				return board;
+			case 'Down':
+				return elm_community$list_extra$List$Extra$transpose(
+					elm$core$List$reverse(board));
+			case 'Left':
+				return A2(elm$core$List$map, elm$core$List$reverse, board);
+			default:
+				return board;
+		}
+	});
+var elm$core$Basics$not = _Basics_not;
+var author$project$Main$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'MouseDown':
+				var data = msg.a;
+				return _Utils_Tuple2(
+					{
+						board: model.board,
+						isMouseDown: true,
+						originalCoordinates: _Utils_Tuple2(data.offsetX, data.offsetY)
+					},
+					elm$core$Platform$Cmd$none);
+			case 'MouseMove':
+				var data = msg.a;
+				var direction = A2(
+					author$project$Main$findMoveDirection,
+					model.originalCoordinates,
+					_Utils_Tuple2(data.offsetX, data.offsetY));
+				return (_Utils_eq(direction, author$project$Main$None) || (!model.isMouseDown)) ? _Utils_Tuple2(model, elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					{
+						board: A2(
+							author$project$Main$moveTiles,
+							direction,
+							A2(author$project$Main$normalize, direction, model.board)),
+						isMouseDown: false,
+						originalCoordinates: model.originalCoordinates
+					},
+					elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(
+					{
+						board: model.board,
+						isMouseDown: false,
+						originalCoordinates: _Utils_Tuple2(0, 0)
+					},
+					elm$core$Platform$Cmd$none);
+		}
+	});
+var author$project$Main$MouseDown = function (a) {
+	return {$: 'MouseDown', a: a};
+};
+var author$project$Main$MouseMove = function (a) {
+	return {$: 'MouseMove', a: a};
+};
+var author$project$Main$MouseUp = {$: 'MouseUp'};
+var author$project$Main$MouseMoveData = F4(
+	function (offsetX, offsetY, offsetHeight, offsetWidth) {
+		return {offsetHeight: offsetHeight, offsetWidth: offsetWidth, offsetX: offsetX, offsetY: offsetY};
+	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
+	});
+var elm$json$Json$Decode$float = _Json_decodeFloat;
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var elm$json$Json$Decode$map4 = _Json_map4;
+var author$project$Main$decodeMouseData = A5(
+	elm$json$Json$Decode$map4,
+	author$project$Main$MouseMoveData,
+	A2(
+		elm$json$Json$Decode$at,
+		_List_fromArray(
+			['offsetX']),
+		elm$json$Json$Decode$int),
+	A2(
+		elm$json$Json$Decode$at,
+		_List_fromArray(
+			['offsetY']),
+		elm$json$Json$Decode$int),
+	A2(
+		elm$json$Json$Decode$at,
+		_List_fromArray(
+			['target', 'offsetHeight']),
+		elm$json$Json$Decode$float),
+	A2(
+		elm$json$Json$Decode$at,
+		_List_fromArray(
+			['target', 'offsetWidth']),
+		elm$json$Json$Decode$float));
+var elm$core$String$concat = function (strings) {
+	return A2(elm$core$String$join, '', strings);
+};
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$p = _VirtualDom_node('p');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
+var author$project$Main$renderTile = function (n) {
+	var num = elm$core$String$fromInt(n);
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$class(
+				elm$core$String$concat(
+					_List_fromArray(
+						['Tile Tile-', num])))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						(!n) ? elm$html$Html$text('') : elm$html$Html$text(num)
+					]))
+			]));
+};
 var author$project$Main$renderRow = function (row) {
 	return A2(
 		elm$html$Html$div,
@@ -4948,20 +5116,62 @@ var author$project$Main$renderRow = function (row) {
 			]),
 		A2(elm$core$List$map, author$project$Main$renderTile, row));
 };
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var elm$html$Html$Events$onMouseUp = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'mouseup',
+		elm$json$Json$Decode$succeed(msg));
+};
 var author$project$Main$renderBoard = function (board) {
 	return A2(
 		elm$html$Html$div,
 		_List_fromArray(
 			[
-				elm$html$Html$Attributes$class('Board')
+				elm$html$Html$Attributes$class('BoardContainer')
 			]),
-		A2(elm$core$List$map, author$project$Main$renderRow, board));
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('Board')
+					]),
+				A2(elm$core$List$map, author$project$Main$renderRow, board)),
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$class('TouchListener'),
+						A2(
+						elm$html$Html$Events$on,
+						'mousedown',
+						A2(elm$json$Json$Decode$map, author$project$Main$MouseDown, author$project$Main$decodeMouseData)),
+						A2(
+						elm$html$Html$Events$on,
+						'mousemove',
+						A2(elm$json$Json$Decode$map, author$project$Main$MouseMove, author$project$Main$decodeMouseData)),
+						elm$html$Html$Events$onMouseUp(author$project$Main$MouseUp)
+					]),
+				_List_Nil)
+			]));
 };
 var author$project$Main$view = function (model) {
 	return {
 		body: _List_fromArray(
 			[
-				author$project$Main$renderBoard(model)
+				author$project$Main$renderBoard(model.board)
 			]),
 		title: '2048'
 	};
