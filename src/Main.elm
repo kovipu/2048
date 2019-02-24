@@ -3,9 +3,7 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (class)
-import Html.Events exposing (on, onMouseUp)
-import Debug exposing (log)
-import Json.Decode exposing (Decoder, map4, at, float, int)
+import Html.Events.Extra.Touch as Touch
 import List.Extra exposing (transpose)
 
 
@@ -26,8 +24,8 @@ type alias Row = List Int
 type alias Board = List Row
 type alias Model =
     { board : Board
-    , isMouseDown : Bool
-    , originalCoordinates : (Int, Int)
+    , touchInProgress : Bool
+    , originalTouchCoords : (Float, Float)
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -37,8 +35,8 @@ init _ =
                 , [0,0,0,0]
                 , [0,0,8,4]
                 ]
-      , isMouseDown = False
-      , originalCoordinates = (0, 0)
+      , touchInProgress = False
+      , originalTouchCoords = (0, 0)
       }
     , Cmd.none
     )
@@ -47,45 +45,40 @@ init _ =
 
 -- UPDATE
 
-type alias MouseMoveData =
-    { offsetX : Int
-    , offsetY : Int
-    , offsetHeight : Float
-    , offsetWidth : Float
-    }
-
 type Direction = Up | Right | Down | Left | None
-type Msg = MouseDown MouseMoveData | MouseMove MouseMoveData | MouseUp
+type Msg = TouchStart (Float, Float)
+         | TouchMove (Float, Float)
+         | TouchEnd (Float, Float)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        MouseDown data ->
-            ( { model | isMouseDown = True
-              , originalCoordinates = (data.offsetX, data.offsetY)
+        TouchStart data ->
+            ( { model | touchInProgress = True
+              , originalTouchCoords = data
               }
             , Cmd.none)
 
-        MouseMove data ->
+        TouchMove data ->
             let
-                direction = findMoveDirection model.originalCoordinates (data.offsetX, data.offsetY)
+                direction = findMoveDirection model.originalTouchCoords data
             in
-                if direction == None || not model.isMouseDown
+                if direction == None || not model.touchInProgress
                 then (model, Cmd.none)
                 else ( { model | board = model.board
                           |> normalize direction
                           |> moveTiles
                           |> deNormalize direction
-                       , isMouseDown = False
+                       , touchInProgress = False
                        }
                      , Cmd.none)
 
-        MouseUp ->
-            ( { model | isMouseDown = False }
+        TouchEnd _ ->
+            ( { model | touchInProgress = False }
             , Cmd.none)
 
-findMoveDirection : (Int, Int) -> (Int, Int) -> Direction
+findMoveDirection : (Float, Float) -> (Float, Float) -> Direction
 findMoveDirection (originalX, originalY) (newX, newY) =
     let
         offsetX = originalX - newX
@@ -150,7 +143,7 @@ stepFunction n acc =
         else if n == 0
             then acc
         else if h == Just n
-            then 2*n :: List.drop 1 acc
+            then 2 * n :: List.drop 1 acc
         else
             n :: acc
 
@@ -209,20 +202,18 @@ renderBoard board =
         [ div [ class "Board" ]
               ( List.map renderRow board )
          , div [ class "TouchListener"
-               , on "mousedown" (Json.Decode.map MouseDown decodeMouseData)
-               , on "mousemove" (Json.Decode.map MouseMove decodeMouseData)
-               , onMouseUp MouseUp
+               , Touch.onStart (TouchStart << touchCoordinates)
+               , Touch.onMove (TouchMove << touchCoordinates)
+               , Touch.onEnd (TouchEnd << touchCoordinates)
                ]
                []
          ]
 
-decodeMouseData : Decoder MouseMoveData
-decodeMouseData =
-    map4 MouseMoveData
-        (at [ "offsetX" ] int)
-        (at [ "offsetY" ] int)
-        (at [ "target", "offsetHeight" ] float)
-        (at [ "target", "offsetWidth" ] float)
+touchCoordinates : Touch.Event -> (Float, Float)
+touchCoordinates touchEvent =
+    List.head touchEvent.changedTouches
+        |> Maybe.map .clientPos
+        |> Maybe.withDefault (0, 0)
 
 renderRow : Row -> Html Msg
 renderRow row =
@@ -231,13 +222,11 @@ renderRow row =
 
 renderTile : Int -> Html Msg
 renderTile n =
-    let
-        num = String.fromInt n
-    in
-        div [ class (String.concat ["Tile Tile-", num]) ]
-            [ p []
-                [ if n == 0
-                    then text ""
-                    else text num
-                    ] ]
+    let num = String.fromInt n
+    in div [ class (String.concat ["Tile Tile-", num]) ]
+           [ p []
+               [ if n == 0
+                   then text ""
+                   else text num
+               ] ]
 
