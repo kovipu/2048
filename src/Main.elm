@@ -1,10 +1,12 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Events exposing (onKeyDown)
 import Html exposing (Html, text, div, p)
 import Html.Attributes exposing (class)
 import Html.Events.Extra.Touch as Touch
 import List.Extra exposing (transpose)
+import Json.Decode as Json
 
 
 -- MAIN
@@ -49,6 +51,7 @@ type Direction = Up | Right | Down | Left | None
 type Msg = TouchStart (Float, Float)
          | TouchMove (Float, Float)
          | TouchEnd (Float, Float)
+         | Move Direction
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -77,6 +80,17 @@ update msg model =
         TouchEnd _ ->
             ( { model | touchInProgress = False }
             , Cmd.none)
+
+        Move direction ->
+            if direction == None
+            then (model, Cmd.none)
+            else ( { model | board = model.board
+                      |> normalize direction
+                      |> moveTiles
+                      |> deNormalize direction
+                   }
+                 , Cmd.none)
+
 
 findMoveDirection : (Float, Float) -> (Float, Float) -> Direction
 findMoveDirection (originalX, originalY) (newX, newY) =
@@ -180,7 +194,29 @@ deNormalize direction board =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    onKeyDown keyDecoder
+
+keyDecoder : Json.Decoder Msg
+keyDecoder =
+    Json.map toDirection (Json.field "key" Json.string)
+
+toDirection : String -> Msg
+toDirection string =
+    case string of
+        "ArrowUp" ->
+            Move Up
+
+        "ArrowRight" ->
+            Move Right
+
+        "ArrowDown" ->
+            Move Down
+
+        "ArrowLeft" ->
+            Move Left
+
+        _ ->
+            Move None
 
 
 -- VIEW
@@ -209,12 +245,6 @@ renderBoard board =
                []
          ]
 
-touchCoordinates : Touch.Event -> (Float, Float)
-touchCoordinates touchEvent =
-    List.head touchEvent.changedTouches
-        |> Maybe.map .clientPos
-        |> Maybe.withDefault (0, 0)
-
 renderRow : Row -> Html Msg
 renderRow row =
     div [ class "Row" ]
@@ -230,3 +260,8 @@ renderTile n =
                    else text num
                ] ]
 
+touchCoordinates : Touch.Event -> (Float, Float)
+touchCoordinates touchEvent =
+    List.head touchEvent.changedTouches
+        |> Maybe.map .clientPos
+        |> Maybe.withDefault (0, 0)
