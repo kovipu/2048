@@ -4793,16 +4793,16 @@ var author$project$Main$init = function (_n0) {
 			board: _List_fromArray(
 				[
 					_List_fromArray(
-					[2, 0, 0, 0]),
-					_List_fromArray(
 					[0, 0, 2, 2]),
 					_List_fromArray(
-					[4, 4, 0, 0]),
+					[0, 0, 0, 0]),
 					_List_fromArray(
-					[0, 2, 4, 8])
+					[0, 0, 0, 0]),
+					_List_fromArray(
+					[0, 0, 8, 4])
 				]),
-			isMouseDown: false,
-			originalCoordinates: _Utils_Tuple2(0, 0)
+			originalTouchCoords: _Utils_Tuple2(0, 0),
+			touchInProgress: false
 		},
 		elm$core$Platform$Cmd$none);
 };
@@ -4812,37 +4812,6 @@ var author$project$Main$subscriptions = function (model) {
 	return elm$core$Platform$Sub$none;
 };
 var author$project$Main$None = {$: 'None'};
-var author$project$Main$Down = {$: 'Down'};
-var author$project$Main$Left = {$: 'Left'};
-var author$project$Main$Right = {$: 'Right'};
-var author$project$Main$Up = {$: 'Up'};
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var elm$core$Basics$abs = function (n) {
-	return (n < 0) ? (-n) : n;
-};
-var author$project$Main$findMoveDirection = F2(
-	function (_n0, _n1) {
-		var originalX = _n0.a;
-		var originalY = _n0.b;
-		var newX = _n1.a;
-		var newY = _n1.b;
-		var threshold = 50;
-		var offsetY = originalY - newY;
-		var offsetX = originalX - newX;
-		return (_Utils_cmp(
-			elm$core$Basics$abs(offsetX),
-			threshold) > 0) ? ((offsetX > 0) ? author$project$Main$Left : author$project$Main$Right) : ((_Utils_cmp(
-			elm$core$Basics$abs(offsetY),
-			threshold) > 0) ? ((offsetY > 0) ? author$project$Main$Up : author$project$Main$Down) : author$project$Main$None);
-	});
-var elm$core$Debug$log = _Debug_log;
-var author$project$Main$moveTiles = F2(
-	function (direction, board) {
-		var _n0 = A2(elm$core$Debug$log, 'Moving to direction', direction);
-		return board;
-	});
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -4951,21 +4920,244 @@ var elm_community$list_extra$List$Extra$transpose = function (listOfLists) {
 			_List_Nil),
 		listOfLists);
 };
+var author$project$Main$deNormalize = F2(
+	function (direction, board) {
+		switch (direction.$) {
+			case 'Up':
+				return elm_community$list_extra$List$Extra$transpose(
+					elm$core$List$reverse(board));
+			case 'Right':
+				return A2(elm$core$List$map, elm$core$List$reverse, board);
+			case 'Down':
+				return elm$core$List$reverse(
+					elm_community$list_extra$List$Extra$transpose(board));
+			case 'Left':
+				return board;
+			default:
+				return board;
+		}
+	});
+var author$project$Main$Down = {$: 'Down'};
+var author$project$Main$Left = {$: 'Left'};
+var author$project$Main$Right = {$: 'Right'};
+var author$project$Main$Up = {$: 'Up'};
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var author$project$Main$findMoveDirection = F2(
+	function (_n0, _n1) {
+		var originalX = _n0.a;
+		var originalY = _n0.b;
+		var newX = _n1.a;
+		var newY = _n1.b;
+		var threshold = 50;
+		var offsetY = originalY - newY;
+		var offsetX = originalX - newX;
+		return (_Utils_cmp(
+			elm$core$Basics$abs(offsetX),
+			threshold) > 0) ? ((offsetX > 0) ? author$project$Main$Left : author$project$Main$Right) : ((_Utils_cmp(
+			elm$core$Basics$abs(offsetY),
+			threshold) > 0) ? ((offsetY > 0) ? author$project$Main$Up : author$project$Main$Down) : author$project$Main$None);
+	});
+var author$project$Main$padWithZeros = function (row) {
+	return _Utils_ap(
+		row,
+		_List_fromArray(
+			[0, 0, 0, 0]));
+};
+var elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Main$stepFunction = F2(
+	function (n, acc) {
+		var h = elm$core$List$head(acc);
+		return _Utils_eq(h, elm$core$Maybe$Nothing) ? _List_fromArray(
+			[n]) : ((!n) ? acc : (_Utils_eq(
+			h,
+			elm$core$Maybe$Just(n)) ? A2(
+			elm$core$List$cons,
+			2 * n,
+			A2(elm$core$List$drop, 1, acc)) : A2(elm$core$List$cons, n, acc)));
+	});
+var elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2(elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return elm$core$List$reverse(
+			A3(elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _n0 = _Utils_Tuple2(n, list);
+			_n0$1:
+			while (true) {
+				_n0$5:
+				while (true) {
+					if (!_n0.b.b) {
+						return list;
+					} else {
+						if (_n0.b.b.b) {
+							switch (_n0.a) {
+								case 1:
+									break _n0$1;
+								case 2:
+									var _n2 = _n0.b;
+									var x = _n2.a;
+									var _n3 = _n2.b;
+									var y = _n3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_n0.b.b.b.b) {
+										var _n4 = _n0.b;
+										var x = _n4.a;
+										var _n5 = _n4.b;
+										var y = _n5.a;
+										var _n6 = _n5.b;
+										var z = _n6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _n0$5;
+									}
+								default:
+									if (_n0.b.b.b.b && _n0.b.b.b.b.b) {
+										var _n7 = _n0.b;
+										var x = _n7.a;
+										var _n8 = _n7.b;
+										var y = _n8.a;
+										var _n9 = _n8.b;
+										var z = _n9.a;
+										var _n10 = _n9.b;
+										var w = _n10.a;
+										var tl = _n10.b;
+										return (ctr > 1000) ? A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A2(elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A3(elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _n0$5;
+									}
+							}
+						} else {
+							if (_n0.a === 1) {
+								break _n0$1;
+							} else {
+								break _n0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _n1 = _n0.b;
+			var x = _n1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var elm$core$List$take = F2(
+	function (n, list) {
+		return A3(elm$core$List$takeFast, 0, n, list);
+	});
+var author$project$Main$moveRow = function (row) {
+	return A2(
+		elm$core$List$take,
+		4,
+		author$project$Main$padWithZeros(
+			A3(elm$core$List$foldr, author$project$Main$stepFunction, _List_Nil, row)));
+};
+var author$project$Main$moveTiles = function (board) {
+	return A2(elm$core$List$map, author$project$Main$moveRow, board);
+};
 var author$project$Main$normalize = F2(
 	function (direction, board) {
 		switch (direction.$) {
 			case 'Up':
-				return A2(
-					elm$core$List$map,
-					elm$core$List$reverse,
+				return elm$core$List$reverse(
 					elm_community$list_extra$List$Extra$transpose(board));
 			case 'Right':
-				return board;
+				return A2(elm$core$List$map, elm$core$List$reverse, board);
 			case 'Down':
 				return elm_community$list_extra$List$Extra$transpose(
 					elm$core$List$reverse(board));
 			case 'Left':
-				return A2(elm$core$List$map, elm$core$List$reverse, board);
+				return board;
 			default:
 				return board;
 		}
@@ -4974,83 +5166,45 @@ var elm$core$Basics$not = _Basics_not;
 var author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'MouseDown':
+			case 'TouchStart':
 				var data = msg.a;
 				return _Utils_Tuple2(
-					{
-						board: model.board,
-						isMouseDown: true,
-						originalCoordinates: _Utils_Tuple2(data.offsetX, data.offsetY)
-					},
+					_Utils_update(
+						model,
+						{originalTouchCoords: data, touchInProgress: true}),
 					elm$core$Platform$Cmd$none);
-			case 'MouseMove':
+			case 'TouchMove':
 				var data = msg.a;
-				var direction = A2(
-					author$project$Main$findMoveDirection,
-					model.originalCoordinates,
-					_Utils_Tuple2(data.offsetX, data.offsetY));
-				return (_Utils_eq(direction, author$project$Main$None) || (!model.isMouseDown)) ? _Utils_Tuple2(model, elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-					{
-						board: A2(
-							author$project$Main$moveTiles,
-							direction,
-							A2(author$project$Main$normalize, direction, model.board)),
-						isMouseDown: false,
-						originalCoordinates: model.originalCoordinates
-					},
+				var direction = A2(author$project$Main$findMoveDirection, model.originalTouchCoords, data);
+				return (_Utils_eq(direction, author$project$Main$None) || (!model.touchInProgress)) ? _Utils_Tuple2(model, elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							board: A2(
+								author$project$Main$deNormalize,
+								direction,
+								author$project$Main$moveTiles(
+									A2(author$project$Main$normalize, direction, model.board))),
+							touchInProgress: false
+						}),
 					elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(
-					{
-						board: model.board,
-						isMouseDown: false,
-						originalCoordinates: _Utils_Tuple2(0, 0)
-					},
+					_Utils_update(
+						model,
+						{touchInProgress: false}),
 					elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Main$MouseDown = function (a) {
-	return {$: 'MouseDown', a: a};
+var author$project$Main$TouchEnd = function (a) {
+	return {$: 'TouchEnd', a: a};
 };
-var author$project$Main$MouseMove = function (a) {
-	return {$: 'MouseMove', a: a};
+var author$project$Main$TouchMove = function (a) {
+	return {$: 'TouchMove', a: a};
 };
-var author$project$Main$MouseUp = {$: 'MouseUp'};
-var author$project$Main$MouseMoveData = F4(
-	function (offsetX, offsetY, offsetHeight, offsetWidth) {
-		return {offsetHeight: offsetHeight, offsetWidth: offsetWidth, offsetX: offsetX, offsetY: offsetY};
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
-	});
-var elm$json$Json$Decode$float = _Json_decodeFloat;
-var elm$json$Json$Decode$int = _Json_decodeInt;
-var elm$json$Json$Decode$map4 = _Json_map4;
-var author$project$Main$decodeMouseData = A5(
-	elm$json$Json$Decode$map4,
-	author$project$Main$MouseMoveData,
-	A2(
-		elm$json$Json$Decode$at,
-		_List_fromArray(
-			['offsetX']),
-		elm$json$Json$Decode$int),
-	A2(
-		elm$json$Json$Decode$at,
-		_List_fromArray(
-			['offsetY']),
-		elm$json$Json$Decode$int),
-	A2(
-		elm$json$Json$Decode$at,
-		_List_fromArray(
-			['target', 'offsetHeight']),
-		elm$json$Json$Decode$float),
-	A2(
-		elm$json$Json$Decode$at,
-		_List_fromArray(
-			['target', 'offsetWidth']),
-		elm$json$Json$Decode$float));
+var author$project$Main$TouchStart = function (a) {
+	return {$: 'TouchStart', a: a};
+};
 var elm$core$String$concat = function (strings) {
 	return A2(elm$core$String$join, '', strings);
 };
@@ -5116,23 +5270,168 @@ var author$project$Main$renderRow = function (row) {
 			]),
 		A2(elm$core$List$map, author$project$Main$renderTile, row));
 };
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Main$touchCoordinates = function (touchEvent) {
+	return A2(
+		elm$core$Maybe$withDefault,
+		_Utils_Tuple2(0, 0),
+		A2(
+			elm$core$Maybe$map,
+			function ($) {
+				return $.clientPos;
+			},
+			elm$core$List$head(touchEvent.changedTouches)));
+};
+var elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions = {preventDefault: true, stopPropagation: false};
+var elm$virtual_dom$VirtualDom$Custom = function (a) {
+	return {$: 'Custom', a: a};
 };
 var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var elm$html$Html$Events$on = F2(
+var elm$html$Html$Events$custom = F2(
 	function (event, decoder) {
 		return A2(
 			elm$virtual_dom$VirtualDom$on,
 			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
+			elm$virtual_dom$VirtualDom$Custom(decoder));
 	});
-var elm$html$Html$Events$onMouseUp = function (msg) {
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$map4 = _Json_map4;
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Event = F4(
+	function (keys, changedTouches, targetTouches, touches) {
+		return {changedTouches: changedTouches, keys: keys, targetTouches: targetTouches, touches: touches};
+	});
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Touch = F4(
+	function (identifier, clientPos, pagePos, screenPos) {
+		return {clientPos: clientPos, identifier: identifier, pagePos: pagePos, screenPos: screenPos};
+	});
+var elm$json$Json$Decode$float = _Json_decodeFloat;
+var mpizenberg$elm_pointer_events$Internal$Decode$clientPos = A3(
+	elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2(elm$json$Json$Decode$field, 'clientX', elm$json$Json$Decode$float),
+	A2(elm$json$Json$Decode$field, 'clientY', elm$json$Json$Decode$float));
+var mpizenberg$elm_pointer_events$Internal$Decode$pagePos = A3(
+	elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2(elm$json$Json$Decode$field, 'pageX', elm$json$Json$Decode$float),
+	A2(elm$json$Json$Decode$field, 'pageY', elm$json$Json$Decode$float));
+var mpizenberg$elm_pointer_events$Internal$Decode$screenPos = A3(
+	elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2(elm$json$Json$Decode$field, 'screenX', elm$json$Json$Decode$float),
+	A2(elm$json$Json$Decode$field, 'screenY', elm$json$Json$Decode$float));
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder = A5(
+	elm$json$Json$Decode$map4,
+	mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Touch,
+	A2(elm$json$Json$Decode$field, 'identifier', elm$json$Json$Decode$int),
+	mpizenberg$elm_pointer_events$Internal$Decode$clientPos,
+	mpizenberg$elm_pointer_events$Internal$Decode$pagePos,
+	mpizenberg$elm_pointer_events$Internal$Decode$screenPos);
+var elm$json$Json$Decode$andThen = _Json_andThen;
+var mpizenberg$elm_pointer_events$Internal$Decode$all = A2(
+	elm$core$List$foldr,
+	elm$json$Json$Decode$map2(elm$core$List$cons),
+	elm$json$Json$Decode$succeed(_List_Nil));
+var mpizenberg$elm_pointer_events$Internal$Decode$dynamicListOf = function (itemDecoder) {
+	var decodeOne = function (n) {
+		return A2(
+			elm$json$Json$Decode$field,
+			elm$core$String$fromInt(n),
+			itemDecoder);
+	};
+	var decodeN = function (n) {
+		return mpizenberg$elm_pointer_events$Internal$Decode$all(
+			A2(
+				elm$core$List$map,
+				decodeOne,
+				A2(elm$core$List$range, 0, n - 1)));
+	};
 	return A2(
-		elm$html$Html$Events$on,
-		'mouseup',
-		elm$json$Json$Decode$succeed(msg));
+		elm$json$Json$Decode$andThen,
+		decodeN,
+		A2(elm$json$Json$Decode$field, 'length', elm$json$Json$Decode$int));
 };
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder = mpizenberg$elm_pointer_events$Internal$Decode$dynamicListOf;
+var elm$json$Json$Decode$bool = _Json_decodeBool;
+var elm$json$Json$Decode$map3 = _Json_map3;
+var mpizenberg$elm_pointer_events$Internal$Decode$Keys = F3(
+	function (alt, ctrl, shift) {
+		return {alt: alt, ctrl: ctrl, shift: shift};
+	});
+var mpizenberg$elm_pointer_events$Internal$Decode$keys = A4(
+	elm$json$Json$Decode$map3,
+	mpizenberg$elm_pointer_events$Internal$Decode$Keys,
+	A2(elm$json$Json$Decode$field, 'altKey', elm$json$Json$Decode$bool),
+	A2(elm$json$Json$Decode$field, 'ctrlKey', elm$json$Json$Decode$bool),
+	A2(elm$json$Json$Decode$field, 'shiftKey', elm$json$Json$Decode$bool));
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$eventDecoder = A5(
+	elm$json$Json$Decode$map4,
+	mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Event,
+	mpizenberg$elm_pointer_events$Internal$Decode$keys,
+	A2(
+		elm$json$Json$Decode$field,
+		'changedTouches',
+		mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)),
+	A2(
+		elm$json$Json$Decode$field,
+		'targetTouches',
+		mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)),
+	A2(
+		elm$json$Json$Decode$field,
+		'touches',
+		mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)));
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions = F3(
+	function (event, options, tag) {
+		return A2(
+			elm$html$Html$Events$custom,
+			event,
+			A2(
+				elm$json$Json$Decode$map,
+				function (ev) {
+					return {
+						message: tag(ev),
+						preventDefault: options.preventDefault,
+						stopPropagation: options.stopPropagation
+					};
+				},
+				mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$eventDecoder));
+	});
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd = A2(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchend', mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onMove = A2(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchmove', mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
+var mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onStart = A2(mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchstart', mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
 var author$project$Main$renderBoard = function (board) {
 	return A2(
 		elm$html$Html$div,
@@ -5154,15 +5453,12 @@ var author$project$Main$renderBoard = function (board) {
 				_List_fromArray(
 					[
 						elm$html$Html$Attributes$class('TouchListener'),
-						A2(
-						elm$html$Html$Events$on,
-						'mousedown',
-						A2(elm$json$Json$Decode$map, author$project$Main$MouseDown, author$project$Main$decodeMouseData)),
-						A2(
-						elm$html$Html$Events$on,
-						'mousemove',
-						A2(elm$json$Json$Decode$map, author$project$Main$MouseMove, author$project$Main$decodeMouseData)),
-						elm$html$Html$Events$onMouseUp(author$project$Main$MouseUp)
+						mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onStart(
+						A2(elm$core$Basics$composeL, author$project$Main$TouchStart, author$project$Main$touchCoordinates)),
+						mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onMove(
+						A2(elm$core$Basics$composeL, author$project$Main$TouchMove, author$project$Main$touchCoordinates)),
+						mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd(
+						A2(elm$core$Basics$composeL, author$project$Main$TouchEnd, author$project$Main$touchCoordinates))
 					]),
 				_List_Nil)
 			]));
