@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Array
 import Browser
 import Browser.Events exposing (onKeyDown)
 import Html exposing (Html, text, div, p)
@@ -7,6 +8,8 @@ import Html.Attributes exposing (class)
 import Html.Events.Extra.Touch as Touch
 import List.Extra exposing (transpose)
 import Json.Decode as Json
+import Random
+import Debug exposing (log)
 
 
 -- MAIN
@@ -52,6 +55,7 @@ type Msg = TouchStart (Float, Float)
          | TouchMove (Float, Float)
          | TouchEnd (Float, Float)
          | Move Direction
+         | NewTile (Int, Int)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,19 +67,26 @@ update msg model =
               }
             , Cmd.none)
 
+
         TouchMove data ->
             let
                 direction = findMoveDirection model.originalTouchCoords data
-            in
-                if direction == None || not model.touchInProgress
-                then (model, Cmd.none)
-                else ( { model | board = model.board
+                board = model.board
                           |> normalize direction
                           |> moveTiles
                           |> deNormalize direction
+                boardWithCoords = addCoordinates board
+                generateIndex = Random.int 0 (List.length (filterZeros boardWithCoords) - 1)
+                generateNewTileValue = Random.weighted
+                    (90, 2)
+                    [(10, 4)]
+            in
+                if direction == None || not model.touchInProgress
+                then (model, Cmd.none)
+                else ( { model | board = board
                        , touchInProgress = False
                        }
-                     , Cmd.none)
+                     , Random.generate NewTile (Random.pair generateIndex generateNewTileValue))
 
         TouchEnd _ ->
             ( { model | touchInProgress = False }
@@ -84,12 +95,35 @@ update msg model =
         Move direction ->
             if direction == None
             then (model, Cmd.none)
-            else ( { model | board = model.board
+            else
+            let
+                board = model.board
                       |> normalize direction
                       |> moveTiles
                       |> deNormalize direction
-                   }
-                 , Cmd.none)
+                boardWithCoords = addCoordinates board
+                generateIndex = Random.int 0 (List.length (filterZeros boardWithCoords) - 1)
+                generateNewTileValue = Random.weighted
+                    (90, 2)
+                    [(10, 4)]
+            in
+                ( { model | board = board }
+                , Random.generate NewTile (Random.pair generateIndex generateNewTileValue))
+
+        NewTile (rn, tile) ->
+            let (randX, randY, _) = addCoordinates model.board
+                      |> filterZeros
+                      |> Array.fromList
+                      |> Array.get rn
+                      |> Maybe.withDefault (0, 0, 0)
+                board = List.indexedMap (\y row ->
+                    List.indexedMap (\x n ->
+                        if x == randX && y == randY
+                            then tile
+                            else n
+                    ) row) model.board
+            in ({ model | board = board }, Cmd.none)
+
 
 
 findMoveDirection : (Float, Float) -> (Float, Float) -> Direction
@@ -190,6 +224,17 @@ deNormalize direction board =
             board
 
 
+addCoordinates : Board -> List (List (Int, Int, Int))
+addCoordinates board =
+    List.indexedMap (\y row ->
+        List.indexedMap (\x num -> (x, y, num)) row) board
+
+filterZeros : List (List (Int, Int, Int)) -> List (Int, Int, Int)
+filterZeros board =
+     List.concat board
+        |> List.filter (\(_, _, n) -> n == 0)
+
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -214,6 +259,18 @@ toDirection string =
 
         "ArrowLeft" ->
             Move Left
+
+        "w" ->
+            Move Up
+
+        "a" ->
+            Move Left
+
+        "s" ->
+            Move Down
+
+        "d" ->
+            Move Right
 
         _ ->
             Move None
