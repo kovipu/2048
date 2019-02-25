@@ -74,3 +74,22 @@ body {
 .Tile-16 {
   background-color: #fdad8c;
 }
+
+.Tile-32 {
+  background-color: #de8c88;
+}
+
+.Tile-64 {
+  background-color: #c06c84;
+}
+
+.Tile-128 {
+  background-color: #ac85b8;
+  font-size: 3.5em;
+}
+
+.Tile-256 {
+  background-color: #999fed;
+  font-size: 3.5em;
+}
+
